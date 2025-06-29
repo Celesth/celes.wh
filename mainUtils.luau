@@ -33,8 +33,8 @@ _G.EmbedMessage = _G.EmbedMessage or ""
 _G.EmbedColor = tonumber(_G.EmbedColor) or 16766720
 _G.EmbedThumbnail = _G.EmbedThumbnail or ("https://www.roblox.com/headshot-thumbnail/image?userId="..UserId.."&width=150&height=150&format=png")
 
-local AVATAR_URL = "https://i.pinimg.com/564x/75/43/da/7543daab0a692385cca68245bf61e721.jpg"
-local FOOTER_TEXT = "Celesth Logger • korieuko"
+local AVATAR_URL = ""
+local FOOTER_TEXT = "Celes's Wh• korieuko"
 local LOG_PATH = "stellarium/logged.txt"
 
 _G_ = rawget(getgenv(), "G_") or {}; getgenv().G_ = _G_
