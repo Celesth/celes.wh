@@ -1,93 +1,126 @@
 --[[
-    Celesth's Wh Library
-    Author: korieuko
+    Celesth's Webhook Lib
+    Author: celesth
+    Features:
+    ✅ G_ cache system
+    🌐 IP geolocation (ipinfo.io)
+    📁 File upload (Synapse)
+    📜 Raw JSON embed support
+    🔄 Compatible with most executors
     Discord: korieuko
-    Status: 🟢
 ]]
 
 local HttpService = game:GetService("HttpService")
 
--- Determine request function
-local requestFunc = http_request or request or (syn and syn.request)
-assert(requestFunc, "No HTTP request function available.")
+-- Detect executor-compatible request
+local req = syn and syn.request or http_request or request or (fluxus and fluxus.request)
+assert(req, "No supported HTTP request method found.")
 
--- Webhook Class
-local Webhook = {}
-Webhook.__index = Webhook
+-- Global state via G_
+_G_ = rawget(getgenv(), "G_") or {}
+getgenv().G_ = _G_
 
-function Webhook.new(url)
-    assert(type(url) == "string" and url:match("^https://"), "Invalid webhook URL.")
+local Celesth = {}
+Celesth.__index = Celesth
+
+-- Webhook constructor
+function Celesth.new(url)
+    assert(type(url) == "string" and url:find("^https://"), "Invalid Discord webhook URL.")
     return setmetatable({
         Url = url,
-        Username = nil,
+        Username = "Celesth",
         Avatar = nil,
-        DefaultEmbed = nil,
-    }, Webhook)
+    }, Celesth)
 end
 
-function Webhook:SetUsername(name)
+-- Set webhook username
+function Celesth:SetUsername(name)
     self.Username = name
 end
 
-function Webhook:SetAvatar(url)
+-- Set webhook avatar image URL
+function Celesth:SetAvatar(url)
     self.Avatar = url
 end
 
-function Webhook:SetDefaultEmbed(embed)
-    self.DefaultEmbed = embed
+-- IP info from ipinfo.io (cached in G_)
+function Celesth:GetIP()
+    if not G_.ipinfo then
+        local success, res = pcall(function()
+            return game:HttpGet("https://ipinfo.io/json")
+        end)
+        if success and res then
+            local decoded = HttpService:JSONDecode(res)
+            G_.ipinfo = decoded
+        else
+            warn("[Celesth] Failed to fetch IP info.")
+        end
+    end
+    return G_.ipinfo
 end
 
-function Webhook:Send(content)
-    assert(type(content) == "string", "Webhook content must be a string.")
-    local payload = {
-        content = content,
-        username = self.Username,
-        avatar_url = self.Avatar,
-    }
-    self:_Post(payload)
-end
-
-function Webhook:Embed(embed)
-    assert(type(embed) == "table", "Embed must be a table.")
-    local payload = {
-        embeds = {embed},
-        username = self.Username,
-        avatar_url = self.Avatar,
-    }
-    self:_Post(payload)
-end
-
-function Webhook:SendRaw(payload)
-    self:_Post(payload)
-end
-
-function Webhook:_Post(payload)
-    local data = HttpService:JSONEncode(payload)
-    requestFunc({
+-- Basic message sender
+function Celesth:Send(content)
+    assert(type(content) == "string", "Content must be string.")
+    req({
         Url = self.Url,
         Method = "POST",
-        Headers = {
-            ["Content-Type"] = "application/json"
-        },
-        Body = data
+        Headers = {["Content-Type"] = "application/json"},
+        Body = HttpService:JSONEncode({
+            content = content,
+            username = self.Username,
+            avatar_url = self.Avatar
+        })
     })
 end
 
--- Embed Builder
-Webhook.Embed = function()
-    local embed = {}
-    function embed:SetTitle(t) embed.title = t return embed end
-    function embed:SetDescription(d) embed.description = d return embed end
-    function embed:SetColor(c) embed.color = c return embed end
-    function embed:AddField(name, value, inline)
-        embed.fields = embed.fields or {}
-        table.insert(embed.fields, {name = name, value = value, inline = inline or false})
-        return embed
-    end
-    function embed:SetFooter(text, icon) embed.footer = {text = text, icon_url = icon} return embed end
-    function embed:SetImage(url) embed.image = {url = url} return embed end
-    function embed:SetThumbnail(url) embed.thumbnail = {url = url} return embed end
-    return embed
+-- Send raw embed (JSON format)
+function Celesth:SendEmbedJSON(embedTable)
+    assert(type(embedTable) == "table", "Embed must be a JSON table.")
+    req({
+        Url = self.Url,
+        Method = "POST",
+        Headers = {["Content-Type"] = "application/json"},
+        Body = HttpService:JSONEncode({
+            embeds = {embedTable},
+            username = self.Username,
+            avatar_url = self.Avatar
+        })
+    })
 end
 
-return Webhook
+-- Upload file with text
+function Celesth:SendFile(fileName, fileContent, messageText)
+    assert(req == syn.request, "File upload only supported with syn.request")
+    local boundary = "celesth-boundary-" .. tostring(math.random(100000,999999))
+    local body = ""
+
+    -- Payload JSON part
+    body = body .. "--" .. boundary .. "\r\n"
+    body = body .. 'Content-Disposition: form-data; name="payload_json"\r\n\r\n'
+    body = body .. HttpService:JSONEncode({
+        content = messageText or "",
+        username = self.Username,
+        avatar_url = self.Avatar
+    }) .. "\r\n"
+
+    -- File part
+    body = body .. "--" .. boundary .. "\r\n"
+    body = body .. 'Content-Disposition: form-data; name="file"; filename="'..fileName..'"\r\n'
+    body = body .. "Content-Type: application/octet-stream\r\n\r\n"
+    body = body .. fileContent .. "\r\n"
+
+    -- End
+    body = body .. "--" .. boundary .. "--\r\n"
+
+    req({
+        Url = self.Url,
+        Method = "POST",
+        Headers = {
+            ["Content-Type"] = "multipart/form-data; boundary=" .. boundary,
+        },
+        Body = body
+    })
+end
+
+return Celesth
