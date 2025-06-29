@@ -27,7 +27,7 @@ _G.WebhookCooldown = 60
 _G.PingEveryone = false
 _G.EmbedTitle = "Module:"
 _G.EmbedMessage = ""
-_G.EmbedColor = 16711680
+_G.EmbedColor = 2303786
 _G.EmbedThumbnail = ""
 
 local Celesth = loadstring(game:HttpGet("https://raw.githubusercontent.com/Celesth/celes.wh/main/mainUtils.luau"))()
